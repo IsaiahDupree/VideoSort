@@ -24,6 +24,12 @@ Run the script with the following command:
 python video_sorter.py --src "E:\backup_2\Videos" --dst "E:\backup_2\SocialMediaContent"
 ```
 
+To reset the list of skipped videos and start fresh:
+
+```bash
+python video_sorter.py --src "E:\backup_2\Videos" --dst "E:\backup_2\SocialMediaContent" --reset
+```
+
 ## How It Works
 
 1. The script will loop through every video file in the source folder
@@ -39,6 +45,7 @@ python video_sorter.py --src "E:\backup_2\Videos" --dst "E:\backup_2\SocialMedia
 - **Supported File Types**: .mp4, .mov, .mkv, .avi
 - **Full Playback**: Videos play with proper aspect ratio and sound
 - **Playback Control**: Type 'y', 'n', or 'q' in the terminal while the video is playing to make your decision
+- **Skipped Videos Tracking**: Videos you skip ('n') are remembered and won't be shown again in future runs
 - **Large Files**: Videos will play until stopped or until the end is reached
 - **Cross-Platform**: Works on Windows, macOS, and Linux
 - **Dependencies**: Requires VLC Media Player and python-vlc
@@ -47,6 +54,15 @@ python video_sorter.py --src "E:\backup_2\Videos" --dst "E:\backup_2\SocialMedia
 
 ```text
 [y] - Move video to E:\backup_2\SocialMediaContent
-[n] - Keep video in E:\backup_2\Videos and continue
+[n] - Keep video in E:\backup_2\Videos and add to skipped list
 [q] - Quit the program
+--reset - Command line flag to clear the skipped videos history
 ```
+
+## How Skipped Videos Tracking Works
+
+- When you choose 'n' for a video, its filename is saved to a persistent list
+- This list is stored in `~/.video_sorter/` as a JSON file unique to each source directory
+- The next time you run the script with the same source directory, previously skipped videos won't be shown
+- If all videos have been skipped, you'll be prompted to reset the list
+- You can manually reset the list with the `--reset` flag

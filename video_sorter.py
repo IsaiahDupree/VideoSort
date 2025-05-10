@@ -1,5 +1,5 @@
 # video_sorter.py
-import argparse, shutil, sys, pathlib, time, threading, queue
+import argparse, shutil, sys, pathlib, time, threading, queue, json, os
 import vlc
 
 def release_vlc_resources():
@@ -80,10 +80,61 @@ def play_video_and_get_choice(path: pathlib.Path) -> str:
     
     return choice
 
+def load_skipped_videos(src_dir: pathlib.Path) -> set:
+    """Load the list of previously skipped videos for this source directory"""
+    # Create a unique history file name based on the source directory path
+    history_dir = pathlib.Path(os.path.expanduser("~")) / ".video_sorter"
+    history_dir.mkdir(exist_ok=True)
+    
+    # Create a hash of the source directory path to use as the filename
+    src_hash = str(hash(str(src_dir.absolute())))
+    history_file = history_dir / f"skipped_{src_hash}.json"
+    
+    if history_file.exists():
+        try:
+            with open(history_file, 'r') as f:
+                return set(json.load(f))
+        except (json.JSONDecodeError, IOError):
+            print("Warning: Could not read history file. Starting with empty history.")
+    
+    return set()
+
+def save_skipped_videos(src_dir: pathlib.Path, skipped_videos: set) -> None:
+    """Save the list of skipped videos for this source directory"""
+    history_dir = pathlib.Path(os.path.expanduser("~")) / ".video_sorter"
+    history_dir.mkdir(exist_ok=True)
+    
+    src_hash = str(hash(str(src_dir.absolute())))
+    history_file = history_dir / f"skipped_{src_hash}.json"
+    
+    try:
+        with open(history_file, 'w') as f:
+            json.dump(list(skipped_videos), f)
+    except IOError:
+        print("Warning: Could not save history file.")
+
 def main(src_dir: pathlib.Path, dst_dir: pathlib.Path) -> None:
-    videos = sorted(p for p in src_dir.iterdir() if p.suffix.lower() in {".mp4", ".mov", ".mkv", ".avi"})
-    if not videos:
+    # Load previously skipped videos
+    skipped_videos = load_skipped_videos(src_dir)
+    print(f"Loaded {len(skipped_videos)} previously skipped videos.")
+    
+    # Get all videos and filter out previously skipped ones
+    all_videos = sorted(p for p in src_dir.iterdir() if p.suffix.lower() in {".mp4", ".mov", ".mkv", ".avi"})
+    videos = [v for v in all_videos if v.name not in skipped_videos]
+    
+    if not all_videos:
         print("No video files found."); return
+    
+    if not videos:
+        print(f"All {len(all_videos)} videos have been previously skipped.")
+        if input("Do you want to reset the skipped videos list? (y/n): ").lower() == 'y':
+            skipped_videos.clear()
+            save_skipped_videos(src_dir, skipped_videos)
+            videos = all_videos
+            print("Skipped videos list has been reset.")
+        else:
+            return
+    
     dst_dir.mkdir(parents=True, exist_ok=True)
 
     for vid in videos:
@@ -114,13 +165,32 @@ def main(src_dir: pathlib.Path, dst_dir: pathlib.Path) -> None:
                     break
         elif choice == "n":
             print("→ left in place")
+            # Add to skipped videos list
+            skipped_videos.add(vid.name)
+            save_skipped_videos(src_dir, skipped_videos)
         elif choice == "q":
             print("Exiting…")
+            # Save skipped videos before exiting
+            save_skipped_videos(src_dir, skipped_videos)
             sys.exit(0)
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser(description="Manual video sorter (y/n to move files).")
     ap.add_argument("--src", required=True, help="Source folder containing videos")
     ap.add_argument("--dst", required=True, help="Destination folder for accepted videos")
+    ap.add_argument("--reset", action="store_true", help="Reset the skipped videos list")
     args = ap.parse_args()
-    main(pathlib.Path(args.src).expanduser(), pathlib.Path(args.dst).expanduser())
+    
+    src_path = pathlib.Path(args.src).expanduser()
+    dst_path = pathlib.Path(args.dst).expanduser()
+    
+    # Reset skipped videos if requested
+    if args.reset:
+        history_dir = pathlib.Path(os.path.expanduser("~")) / ".video_sorter"
+        src_hash = str(hash(str(src_path.absolute())))
+        history_file = history_dir / f"skipped_{src_hash}.json"
+        if history_file.exists():
+            history_file.unlink()
+            print("Skipped videos list has been reset.")
+    
+    main(src_path, dst_path)
