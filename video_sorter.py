@@ -1,5 +1,5 @@
 # video_sorter.py
-import argparse, shutil, sys, pathlib, time, threading, queue, json, os
+import argparse, shutil, sys, pathlib, time, threading, queue, json, os, random
 import vlc
 
 def release_vlc_resources():
@@ -113,7 +113,7 @@ def save_skipped_videos(src_dir: pathlib.Path, skipped_videos: set) -> None:
     except IOError:
         print("Warning: Could not save history file.")
 
-def main(src_dir: pathlib.Path, dst_dir: pathlib.Path) -> None:
+def main(src_dir: pathlib.Path, dst_dir: pathlib.Path, random_order: bool = False) -> None:
     # Load previously skipped videos
     skipped_videos = load_skipped_videos(src_dir)
     print(f"Loaded {len(skipped_videos)} previously skipped videos.")
@@ -121,6 +121,11 @@ def main(src_dir: pathlib.Path, dst_dir: pathlib.Path) -> None:
     # Get all videos and filter out previously skipped ones
     all_videos = sorted(p for p in src_dir.iterdir() if p.suffix.lower() in {".mp4", ".mov", ".mkv", ".avi"})
     videos = [v for v in all_videos if v.name not in skipped_videos]
+    
+    # Randomize the order if requested
+    if random_order and videos:
+        print("Randomizing video order...")
+        random.shuffle(videos)
     
     if not all_videos:
         print("No video files found."); return
@@ -179,10 +184,18 @@ if __name__ == "__main__":
     ap.add_argument("--src", required=True, help="Source folder containing videos")
     ap.add_argument("--dst", required=True, help="Destination folder for accepted videos")
     ap.add_argument("--reset", action="store_true", help="Reset the skipped videos list")
+    ap.add_argument("--random", action="store_true", help="Process videos in random order")
+    ap.add_argument("--seed", type=int, help="Random seed for reproducible shuffling")
     args = ap.parse_args()
     
     src_path = pathlib.Path(args.src).expanduser()
     dst_path = pathlib.Path(args.dst).expanduser()
+    
+    # Set random seed if provided
+    if args.seed is not None:
+        random.seed(args.seed)
+        if args.random:
+            print(f"Using random seed: {args.seed}")
     
     # Reset skipped videos if requested
     if args.reset:
@@ -193,4 +206,4 @@ if __name__ == "__main__":
             history_file.unlink()
             print("Skipped videos list has been reset.")
     
-    main(src_path, dst_path)
+    main(src_path, dst_path, args.random)

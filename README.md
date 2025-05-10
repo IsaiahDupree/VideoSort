@@ -30,6 +30,18 @@ To reset the list of skipped videos and start fresh:
 python video_sorter.py --src "E:\backup_2\Videos" --dst "E:\backup_2\SocialMediaContent" --reset
 ```
 
+To process videos in random order instead of alphabetically:
+
+```bash
+python video_sorter.py --src "E:\backup_2\Videos" --dst "E:\backup_2\SocialMediaContent" --random
+```
+
+To use a specific random seed for reproducible shuffling:
+
+```bash
+python video_sorter.py --src "E:\backup_2\Videos" --dst "E:\backup_2\SocialMediaContent" --random --seed 42
+```
+
 ## How It Works
 
 1. The script will loop through every video file in the source folder
@@ -46,6 +58,7 @@ python video_sorter.py --src "E:\backup_2\Videos" --dst "E:\backup_2\SocialMedia
 - **Full Playback**: Videos play with proper aspect ratio and sound
 - **Playback Control**: Type 'y', 'n', or 'q' in the terminal while the video is playing to make your decision
 - **Skipped Videos Tracking**: Videos you skip ('n') are remembered and won't be shown again in future runs
+- **Random Selection**: Option to process videos in random order for variety
 - **Large Files**: Videos will play until stopped or until the end is reached
 - **Cross-Platform**: Works on Windows, macOS, and Linux
 - **Dependencies**: Requires VLC Media Player and python-vlc
@@ -57,6 +70,8 @@ python video_sorter.py --src "E:\backup_2\Videos" --dst "E:\backup_2\SocialMedia
 [n] - Keep video in E:\backup_2\Videos and add to skipped list
 [q] - Quit the program
 --reset - Command line flag to clear the skipped videos history
+--random - Process videos in random order instead of alphabetically
+--seed N - Use specific random seed N for reproducible shuffling
 ```
 
 ## How Skipped Videos Tracking Works
